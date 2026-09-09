@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from html import escape
+from threading import Lock
 
 import streamlit as st
 
@@ -16,6 +17,20 @@ EXAMPLES = (
     "Compare Nvidia's revenue drivers across the two latest indexed fiscal years.",
 )
 
+
+class ProcessBudget:
+    def __init__(self, limit: int) -> None:
+        self.limit = limit
+        self.used = 0
+        self.lock = Lock()
+
+    def claim(self) -> bool:
+        with self.lock:
+            if self.used >= self.limit:
+                return False
+            self.used += 1
+            return True
+
 st.set_page_config(
     page_title="SEC Financial Analyst",
     page_icon="📈",
@@ -27,6 +42,11 @@ st.set_page_config(
 @st.cache_resource(show_spinner=False)
 def cached_chatbot(top_k: int):
     return build_chatbot(top_k=top_k)
+
+
+@st.cache_resource(show_spinner=False)
+def process_budget(limit: int) -> ProcessBudget:
+    return ProcessBudget(limit)
 
 
 def styles() -> None:
@@ -78,6 +98,7 @@ def main() -> None:
     styles()
     settings = Settings.from_env()
     st.session_state.setdefault("messages", [])
+    st.session_state.setdefault("question_count", 0)
     selected: str | None = None
 
     with st.sidebar:
@@ -87,8 +108,13 @@ def main() -> None:
         st.divider()
         st.subheader("System status")
         st.write(f"{'🟢' if settings.openai_api_key else '🔴'} OpenAI configuration")
-        st.write(f"{'🟢' if settings.vectorstore_dir.exists() else '🔴'} Local SEC index")
+        st.write(f"{'🟢' if settings.index_ready else '🔴'} SEC evidence index")
         st.caption(f"Answer model: `{settings.chat_model}`")
+        if settings.public_demo:
+            remaining = max(
+                settings.demo_session_question_limit - st.session_state.question_count, 0
+            )
+            st.caption(f"Public demo · {remaining} questions left this session")
         st.divider()
         st.subheader("Example questions")
         for index, question in enumerate(EXAMPLES, 1):
@@ -122,6 +148,20 @@ def main() -> None:
     question = selected or typed
     if not question:
         return
+    if len(question) > 500:
+        st.warning("Please keep the question under 500 characters.")
+        return
+    if settings.public_demo:
+        if st.session_state.question_count >= settings.demo_session_question_limit:
+            st.warning("This session has reached its public-demo question limit.")
+            return
+        if not process_budget(settings.demo_process_question_limit).claim():
+            st.warning(
+                "The public demo has reached its current usage budget. "
+                "Please try again later."
+            )
+            return
+        st.session_state.question_count += 1
     history = [
         Turn(question=item["question"], answer=item["response"].answer)
         for item in st.session_state.messages

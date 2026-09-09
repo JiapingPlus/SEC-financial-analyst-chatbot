@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+import faiss
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
@@ -21,6 +22,22 @@ KNOWN_HEADING = re.compile(
     r"results? of operations|liquidity and capital resources|"
     r"critical accounting|business trends?|segment results?)"
 )
+
+PUBLIC_METADATA_FIELDS = {
+    "ticker",
+    "company_name",
+    "cik",
+    "accession_number",
+    "filing_date",
+    "report_date",
+    "year",
+    "filing_type",
+    "item_name",
+    "section_title",
+    "chunk_id",
+    "chunking_strategy",
+    "source_url",
+}
 
 
 def load_normalized_documents(path: Path) -> list[Document]:
@@ -116,6 +133,11 @@ def build_index(settings: Settings) -> dict[str, Any]:
     vectorstore = FAISS.from_documents(chunks, embeddings)
     settings.vectorstore_dir.mkdir(parents=True, exist_ok=True)
     vectorstore.save_local(str(settings.vectorstore_dir))
+    export_portable_index(
+        vectorstore,
+        settings.portable_index_dir,
+        embedding_model=settings.embedding_model,
+    )
     settings.manifest_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
         "documents": len(documents),
@@ -124,9 +146,72 @@ def build_index(settings: Settings) -> dict[str, Any]:
         "chunk_size_tokens": settings.chunk_size_tokens,
         "chunk_overlap_tokens": settings.chunk_overlap_tokens,
         "vectorstore": str(settings.vectorstore_dir),
+        "portable_index": str(settings.portable_index_dir),
     }
     (settings.manifest_dir / "index.json").write_text(
         json.dumps(manifest, indent=2), encoding="utf-8"
+    )
+    return manifest
+
+
+def export_portable_index(
+    vectorstore: FAISS,
+    destination: Path,
+    *,
+    embedding_model: str | None = None,
+) -> dict[str, Any]:
+    """Export trusted LangChain FAISS state to non-pickle deployment files."""
+
+    destination.mkdir(parents=True, exist_ok=True)
+    documents: list[Document] = []
+    for position in range(vectorstore.index.ntotal):
+        document_id = vectorstore.index_to_docstore_id[position]
+        document = vectorstore.docstore.search(document_id)
+        if not isinstance(document, Document):
+            raise TypeError(f"Missing document for FAISS position {position}")
+        metadata = {
+            key: value
+            for key, value in document.metadata.items()
+            if key in PUBLIC_METADATA_FIELDS
+            and isinstance(value, (str, int, float, bool, type(None)))
+        }
+        documents.append(Document(page_content=document.page_content, metadata=metadata))
+
+    faiss.write_index(vectorstore.index, str(destination / "index.faiss"))
+    with (destination / "documents.jsonl").open("w", encoding="utf-8", newline="\n") as handle:
+        for document in documents:
+            handle.write(
+                json.dumps(
+                    {
+                        "page_content": document.page_content,
+                        "metadata": document.metadata,
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+    manifest = {
+        "format": "faiss-jsonl-v1",
+        "embedding_model": embedding_model,
+        "vectors": vectorstore.index.ntotal,
+        "documents": len(documents),
+        "tickers": sorted(
+            {
+                str(document.metadata["ticker"])
+                for document in documents
+                if document.metadata.get("ticker")
+            }
+        ),
+        "years": sorted(
+            {
+                int(document.metadata["year"])
+                for document in documents
+                if document.metadata.get("year")
+            }
+        ),
+    }
+    (destination / "manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
     return manifest
 

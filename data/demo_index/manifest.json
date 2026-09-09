@@ -1,0 +1,21 @@
+{
+  "format": "faiss-jsonl-v1",
+  "embedding_model": "text-embedding-3-small",
+  "vectors": 521,
+  "documents": 521,
+  "tickers": [
+    "AAPL",
+    "AMZN",
+    "MSFT",
+    "NVDA",
+    "TSLA"
+  ],
+  "years": [
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ]
+}

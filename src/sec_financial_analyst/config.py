@@ -27,6 +27,10 @@ class Settings:
     processed_dir: Path
     manifest_dir: Path
     vectorstore_dir: Path
+    portable_index_dir: Path
+    public_demo: bool
+    demo_session_question_limit: int
+    demo_process_question_limit: int
 
     @classmethod
     def from_env(cls, env_file: Path | None = None) -> "Settings":
@@ -50,6 +54,14 @@ class Settings:
             processed_dir=data_dir / "processed",
             manifest_dir=data_dir / "manifests",
             vectorstore_dir=data_dir / "vectorstore" / "sec_10k_faiss",
+            portable_index_dir=data_dir / "demo_index",
+            public_demo=os.getenv("PUBLIC_DEMO", "false").casefold() in {"1", "true", "yes"},
+            demo_session_question_limit=int(
+                os.getenv("DEMO_SESSION_QUESTION_LIMIT", "8")
+            ),
+            demo_process_question_limit=int(
+                os.getenv("DEMO_PROCESS_QUESTION_LIMIT", "100")
+            ),
         )
         settings.validate()
         return settings
@@ -63,6 +75,14 @@ class Settings:
             raise ValueError("CHUNK_SIZE_TOKENS must be positive")
         if not 0 <= self.chunk_overlap_tokens < self.chunk_size_tokens:
             raise ValueError("CHUNK_OVERLAP_TOKENS must be smaller than chunk size")
+        if self.demo_session_question_limit <= 0:
+            raise ValueError("DEMO_SESSION_QUESTION_LIMIT must be positive")
+        if self.demo_process_question_limit <= 0:
+            raise ValueError("DEMO_PROCESS_QUESTION_LIMIT must be positive")
+
+    @property
+    def index_ready(self) -> bool:
+        return self.portable_index_dir.exists() or self.vectorstore_dir.exists()
 
     def require_openai_key(self) -> str:
         if not self.openai_api_key:

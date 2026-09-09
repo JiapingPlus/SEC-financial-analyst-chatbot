@@ -25,6 +25,8 @@ the dashboard exposes the exact SEC excerpts used by the model.
 - Grounded generation with numbered citations and explicit insufficient-evidence behavior
 - Streamlit analyst dashboard with chat history and expandable source cards
 - Offline unit tests, environment diagnostics, and GitHub Actions CI
+- Cloud-safe portable FAISS + JSONL demo index (no pickle deserialization at startup)
+- Public-demo request budgets and Streamlit Community Cloud configuration
 
 ## Architecture
 
@@ -78,6 +80,16 @@ Launch the dashboard:
 python -m streamlit run app\dashboard.py
 ```
 
+## Online demo deployment
+
+The repository is ready for Streamlit Community Cloud with `app/dashboard.py` as its entrypoint
+and Python 3.12. Add `OPENAI_API_KEY` through the platform's Secrets settings—never commit it.
+The included portable index lets the cloud app start immediately with SEC evidence for AAPL,
+MSFT, TSLA, NVDA, and AMZN.
+
+See [the deployment runbook](docs/deployment.md) for the exact fields, secrets template, test,
+and cost-control checklist.
+
 Or ask a single question from the CLI:
 
 ```powershell
@@ -99,6 +111,7 @@ outside the indexed SEC corpus and are rejected or answered with an evidence lim
 ```text
 app/dashboard.py                    Streamlit analyst interface
 .streamlit/config.toml              Portfolio dashboard theme
+data/demo_index/                    Portable 521-chunk public-demo index
 src/sec_financial_analyst/sec.py    EDGAR ingestion + Item 7 extraction
 src/sec_financial_analyst/indexing.py  Section chunking + FAISS persistence
 src/sec_financial_analyst/retrieval.py Metadata-aware retrieval
@@ -106,14 +119,16 @@ src/sec_financial_analyst/chatbot.py   Follow-up rewriting + grounded generation
 src/sec_financial_analyst/cli.py       Reproducible pipeline commands
 tests/                              Offline unit tests
 docs/architecture.md                Design and trust boundaries
+docs/deployment.md                  Streamlit Community Cloud runbook
 ```
 
 ## Data and security
 
-- `.env`, raw filings, normalized corpora, generated chunks, manifests, and FAISS files are
-  ignored by Git.
+- `.env`, raw filings, normalized corpora, generated chunks, manifests, and pickle-backed local
+  indexes are ignored by Git.
 - The repository never contains an API key.
-- FAISS metadata is pickle-backed; only load indexes built locally by this project.
+- The bundled demo uses a non-pickle FAISS + JSONL format; the development pipeline loads its
+  pickle-backed index only when it was built locally by this project.
 - Retrieved filing text is treated as untrusted evidence and is HTML-escaped in the dashboard.
 - Generated answers are research assistance, not investment advice.
 
@@ -131,7 +146,6 @@ metadata filtering, scope control, follow-up rewriting, and exact source mapping
 - Add retrieval and citation evaluation on a fixed SEC question set
 - Add streamed answers and latency/token telemetry
 - Add optional hybrid BM25 + dense retrieval
-- Deploy a small public demo with a prebuilt, versioned non-pickle corpus format
 
 ## License
 

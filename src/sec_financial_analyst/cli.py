@@ -62,7 +62,8 @@ def main() -> None:
         "openai_key_configured": bool(settings.openai_api_key),
         "sec_user_agent_configured": bool(settings.sec_user_agent),
         "normalized_filings": len(list(settings.normalized_dir.glob("*.json"))),
-        "vectorstore_ready": settings.vectorstore_dir.exists(),
+        "index_ready": settings.index_ready,
+        "index_format": "portable" if settings.portable_index_dir.exists() else "local-faiss",
         "chat_model": settings.chat_model,
         "embedding_model": settings.embedding_model,
     }

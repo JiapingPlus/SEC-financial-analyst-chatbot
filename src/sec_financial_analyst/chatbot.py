@@ -11,11 +11,11 @@ from urllib.parse import urlparse
 from langchain_core.documents import Document
 from langchain_core.messages import BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from .config import Settings
 from .indexing import load_index
-from .retrieval import SecRetriever
+from .retrieval import PortableSecRetriever, SecRetriever
 
 
 FINANCIAL_TERMS = {
@@ -175,9 +175,18 @@ class FinancialAnalystChatbot:
 def build_chatbot(settings: Settings | None = None, *, top_k: int | None = None):
     settings = settings or Settings.from_env()
     api_key = settings.require_openai_key()
-    vectorstore = load_index(settings)
     resolved_top_k = settings.retriever_top_k if top_k is None else top_k
-    retriever = SecRetriever(vectorstore, top_k=resolved_top_k)
+    if settings.portable_index_dir.exists():
+        embeddings = OpenAIEmbeddings(api_key=api_key, model=settings.embedding_model)
+        retriever = PortableSecRetriever.load(
+            settings.portable_index_dir,
+            embeddings,
+            top_k=resolved_top_k,
+            expected_embedding_model=settings.embedding_model,
+        )
+    else:
+        vectorstore = load_index(settings)
+        retriever = SecRetriever(vectorstore, top_k=resolved_top_k)
     model = ChatOpenAI(api_key=api_key, model=settings.chat_model, temperature=0)
     return FinancialAnalystChatbot(retriever, model)
 

@@ -11,6 +11,10 @@ data/normalized/*.json
 data/processed/
 data/vectorstore/
 data/manifests/*.json
+!data/demo_index/
+!data/demo_index/index.faiss
+!data/demo_index/documents.jsonl
+!data/demo_index/manifest.json
 !data/README.md
 !data/normalized/.gitkeep
 !data/manifests/.gitkeep
