@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sec-financial-analyst"
+version = "0.1.0"
+description = "Conversational RAG over SEC 10-K Item 7 filings with inspectable citations."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = "MIT"
+authors = [{name = "Jiaping"}]
+dependencies = [
+  "beautifulsoup4>=4.13,<5",
+  "faiss-cpu>=1.12,<2",
+  "langchain-community>=0.4,<1",
+  "langchain-core>=1,<2",
+  "langchain-openai>=1,<2",
+  "langchain-text-splitters>=1,<2",
+  "lxml>=5.3,<7",
+  "python-dotenv>=1,<2",
+  "requests>=2.32,<3",
+  "streamlit>=1.45,<2",
+  "tiktoken>=0.7,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<10",
+  "pytest-cov>=6,<8",
+]
+
+[project.scripts]
+sec-analyst = "sec_financial_analyst.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
