@@ -1,18 +1,15 @@
-# SEC Financial Analyst Chatbot
+# SEC Financial Analyst Chatbot Based on RAG
 
 A conversational retrieval-augmented generation application for analyzing SEC 10-K
 Management's Discussion and Analysis (Item 7). It downloads filings from EDGAR, extracts and
 chunks the relevant section, builds a local FAISS index, rewrites follow-up questions, and
 returns evidence-grounded answers with inspectable citations.
 
-> Portfolio project: the focus is transparent financial research engineering, not investment
-> advice or real-time market prediction.
+> Portfolio project: This project focuses on building a transparent and reliable financial research tool, rather than providing investment advice or predicting real-time market trends.
 
-## Why this project
+## Background
 
-Financial answers are only useful when a reviewer can trace them back to the filing. This
-project makes retrieval visible: every generated claim is grounded in numbered context, and
-the dashboard exposes the exact SEC excerpts used by the model.
+Financial analysis is more reliable when users can trace answers back to their original sources. This project makes the retrieval process transparent by linking generated answers to numbered context passages. The dashboard also allows users to inspect the exact excerpts retrieved from SEC filings.
 
 ## Features
 
@@ -25,7 +22,7 @@ the dashboard exposes the exact SEC excerpts used by the model.
 - Grounded generation with numbered citations and explicit insufficient-evidence behavior
 - Streamlit analyst dashboard with chat history and expandable source cards
 - Offline unit tests, environment diagnostics, and GitHub Actions CI
-- Cloud-safe portable FAISS + JSONL demo index (no pickle deserialization at startup)
+- Cloud-safe portable FAISS + JSONL demo index
 - Public-demo request budgets and Streamlit Community Cloud configuration
 
 ## Architecture
