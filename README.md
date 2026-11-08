@@ -11,6 +11,16 @@ returns evidence-grounded answers with inspectable citations.
 
 Financial analysis is more reliable when users can trace answers back to their original sources. This project makes the retrieval process transparent by linking generated answers to numbered context passages. The dashboard also allows users to inspect the exact excerpts retrieved from SEC filings.
 
+## Project Paper
+
+[Evidence-Unit Compression for Financial RAG](Project%20Paper/Evidence-Unit_Compression_for_Financial_RAG.pdf)
+
+## Evaluation Results
+
+- SEC evidence recall increased from 68.32% to 88.23%.
+- Answer coverage increased from 43.68% to 51.05%.
+- FinQA execution accuracy reached 26.42%, compared with 23.02% for LLMLingua-2 and 12.21% for LongLLMLingua.
+
 ## Features
 
 - End-to-end SEC EDGAR → Item 7 → chunks → embeddings → FAISS pipeline
